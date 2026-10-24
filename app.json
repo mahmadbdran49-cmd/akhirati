@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "آخرتي",
+    "name": "Akhirah",
     "slug": "akhirati",
     "owner": "mohamadbadrans-team",
     "version": "2.0.0",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.akhirati.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#1E130C",
         "foregroundImage": "./assets/android-icon-foreground.png",
