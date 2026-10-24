@@ -471,8 +471,14 @@ function shuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
   return a;
 }
 
+// نخلط ترتيب الخيارات حتى لا تكون الإجابة الصحيحة في نفس المكان دائماً
+function shuffleOptions(q: Question, rand: () => number = Math.random): Question {
+  const order = shuffle(q.options.map((_, i) => i), rand);
+  return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) };
+}
+
 export function pickRound(level: Level): Question[] {
-  return shuffle(QUESTIONS[level]).slice(0, ROUND_SIZE);
+  return shuffle(QUESTIONS[level]).slice(0, ROUND_SIZE).map((q) => shuffleOptions(q));
 }
 
 // تحدي اليوم: نفس الأسئلة الخمسة لكل الناس في نفس اليوم
@@ -486,5 +492,5 @@ export function dailyChallenge(dayKey: string): Question[] {
   const e = shuffle(QUESTIONS.easy, rand).slice(0, 2);
   const m = shuffle(QUESTIONS.medium, rand).slice(0, 2);
   const h = shuffle(QUESTIONS.hard, rand).slice(0, 1);
-  return [...e, ...m, ...h];
+  return [...e, ...m, ...h].map((q) => shuffleOptions(q, rand));
 }
