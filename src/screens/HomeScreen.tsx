@@ -1,151 +1,161 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card, IconButton, IconName, T } from '../components/ui';
-import { CATEGORIES, duaOfTheDay } from '../data/adhkar';
-import { useNav } from '../navigation';
-import { ALIGN_START, ROW } from '../rtl';
+import { Divider, IconName, IslamicPattern, RoundButton, T } from '../components/ui';
+import { duaForDay, hijriLabel, occasionsFor, toHijri, WEEKDAYS } from '../hijri';
+import { Route, Tab, useNav } from '../navigation';
+import { getLocation, nextPrayer } from '../prayer';
+import { surah } from '../quran';
+import { ROW } from '../rtl';
+import { useSharePost } from '../share';
 import { streakCount, useStore } from '../store';
-import { QURAN_FONT, toArabicDigits, todayKey } from '../theme';
+import { FONTS, fmtCountdown, fmtTime, toArabicDigits } from '../theme';
 
-const DAY_NAMES = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+type Tile = { label: string; icon: IconName; route?: Route; tab?: Tab; emerald?: boolean };
 
-export const CATEGORY_ICONS: Record<string, IconName> = {
-  sun: 'sunny-outline',
-  moon: 'moon-outline',
-  bed: 'bed-outline',
-  wake: 'alarm-outline',
-  mosque: 'business-outline',
-  home: 'home-outline',
-  book: 'book-outline',
-};
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'صباح الخير، تقبّل الله طاعتك';
-  if (h < 18) return 'مساء النور، لا تنسَ أذكارك';
-  return 'مساء الخير، ختام يومك بذكر الله';
-}
+const TILES: Tile[] = [
+  { label: 'أذكار الصباح', icon: 'sunny-outline', route: { name: 'reader', source: 'category', id: 'morning' } },
+  { label: 'أذكار المساء', icon: 'moon-outline', route: { name: 'reader', source: 'category', id: 'evening' }, emerald: true },
+  { label: 'أذكار النوم', icon: 'bed-outline', route: { name: 'reader', source: 'category', id: 'sleep' } },
+  { label: 'بعد الصلاة', icon: 'business-outline', route: { name: 'reader', source: 'category', id: 'prayer' }, emerald: true },
+  { label: 'حسب حالتك', icon: 'heart-half-outline', route: { name: 'feelings' } },
+  { label: 'المسبحة', icon: 'ellipse-outline', route: { name: 'tasbih' }, emerald: true },
+  { label: 'القبلة', icon: 'compass-outline', route: { name: 'qibla' } },
+  { label: 'قصص الأنبياء', icon: 'library-outline', route: { name: 'stories' }, emerald: true },
+  { label: 'أسماء الله الحسنى', icon: 'star-outline', route: { name: 'names' } },
+  { label: 'اختبر معلوماتك', icon: 'trophy-outline', route: { name: 'quiz' }, emerald: true },
+  { label: 'أدعية قرآنية', icon: 'book-outline', route: { name: 'reader', source: 'category', id: 'quran' } },
+  { label: 'المفضلة', icon: 'heart-outline', route: { name: 'favorites' }, emerald: true },
+];
 
 export default function HomeScreen() {
-  const { colors, state, isDark } = useStore();
-  const { push, setTab } = useNav();
+  const { colors, state } = useStore();
+  const { push } = useNav();
+  const share = useSharePost();
   const insets = useSafeAreaInsets();
-  const dua = duaOfTheDay();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const h = toHijri(now, state.hijriOffset);
+  const next = nextPrayer(state, now);
+  const occasions = occasionsFor(now, h);
+  const dua = duaForDay(now);
   const streak = streakCount(state.doneDays);
-
-  // آخر ٧ أيام
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return { key: todayKey(d), label: i === 6 ? 'اليوم' : DAY_NAMES[d.getDay()] };
-  });
-  const doneThisWeek = week.filter((w) => state.doneDays.includes(w.key)).length;
-
-  const hour = new Date().getHours();
-  const suggested = hour >= 4 && hour < 12 ? 'morning' : hour >= 12 && hour < 20 ? 'evening' : 'sleep';
-  const suggestedCat = CATEGORIES.find((c) => c.id === suggested)!;
-
-  const tiles: { title: string; subtitle: string; icon: IconName; gold?: boolean; onPress: () => void }[] = [
-    ...CATEGORIES.map((c, i) => ({
-      title: c.title,
-      subtitle: c.subtitle,
-      icon: CATEGORY_ICONS[c.icon],
-      gold: i % 3 === 0,
-      onPress: () => push({ name: 'reader', source: 'category', id: c.id }),
-    })),
-    { title: 'حسب حالتك', subtitle: 'دعاء لكل شعور', icon: 'heart-half-outline', gold: true, onPress: () => push({ name: 'feelings' }) },
-    { title: 'اختبر معلوماتك', subtitle: 'سهل، متوسط، صعب', icon: 'trophy-outline', onPress: () => push({ name: 'quiz' }) },
-    { title: 'المسبحة', subtitle: 'عدّاد التسبيح', icon: 'ellipse-outline', onPress: () => setTab('tasbih') },
-  ];
+  const last = state.lastRead;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: 24 }}>
-      <View style={[s.hero, { backgroundColor: colors.primary, paddingTop: insets.top + 20 }]}>
-        <View style={[s.row, { justifyContent: 'space-between' }]}>
-          <View style={{ alignItems: ALIGN_START }}>
-            <T style={[s.brand, { color: colors.onPrimary }]}>آخرتي</T>
-            <T style={{ color: colors.onPrimaryMuted, fontSize: 14 }}>{greeting()}</T>
-          </View>
-          <View style={[s.streak, { borderColor: 'rgba(212,168,83,0.6)' }]}>
-            <Ionicons name="flame" size={18} color={colors.gold} />
-            <T style={{ color: colors.onPrimary, fontWeight: '700' }}>{toArabicDigits(streak)}</T>
-          </View>
-        </View>
-
-        <View style={[s.duaCard, { borderColor: 'rgba(212,168,83,0.45)' }]}>
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            <T style={{ color: colors.gold, fontWeight: '600', fontSize: 13 }}>دعاء اليوم</T>
-            <IconButton
-              name="share-social-outline"
-              label="مشاركة الدعاء"
-              color={colors.onPrimaryMuted}
-              onPress={() => Share.share({ message: `${dua.text}\n\n﴿${dua.source}﴾\n\nمن تطبيق آخرتي` })}
-            />
-          </View>
-          <T style={[s.duaText, { color: colors.onPrimary }]}>{dua.text}</T>
-          <T style={{ color: colors.onPrimaryMuted, fontSize: 12 }}>{dua.source}</T>
-        </View>
-      </View>
-
-      <View style={{ paddingHorizontal: 20, gap: 16, marginTop: 20 }}>
-        <Pressable
-          onPress={() => push({ name: 'reader', source: 'category', id: suggestedCat.id })}
-          accessibilityRole="button"
-          style={({ pressed }) => [s.now, { backgroundColor: colors.goldSoft, opacity: pressed ? 0.85 : 1 }]}
-        >
-          <Ionicons name={CATEGORY_ICONS[suggestedCat.icon]} size={26} color={colors.goldText} />
-          <View style={{ flex: 1, alignItems: ALIGN_START }}>
-            <T style={{ fontSize: 13, color: colors.goldText }}>المناسب لهذا الوقت</T>
-            <T style={{ fontSize: 17, fontWeight: '700' }}>{suggestedCat.title}</T>
-          </View>
-          <Ionicons name="chevron-back" size={20} color={colors.goldText} />
-        </Pressable>
-
-        <Card style={{ gap: 12 }}>
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            <T style={{ fontWeight: '600' }}>مواظبتك هذا الأسبوع</T>
-            <T style={{ fontWeight: '600', color: colors.goldText, fontSize: 13 }}>
-              {toArabicDigits(doneThisWeek)} من ٧ أيام
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: 28 }}>
+      <View style={[st.hero, { paddingTop: insets.top + 14, backgroundColor: colors.bg2, borderColor: colors.border }]}>
+        <IslamicPattern opacity={0.1} />
+        <View style={[st.row, { justifyContent: 'space-between' }]}>
+          <View>
+            <T style={{ fontFamily: FONTS.logo, fontSize: 34, lineHeight: 56, color: colors.goldText }}>آخرتي</T>
+            <T style={{ fontSize: 12, color: colors.muted }}>
+              {WEEKDAYS[now.getDay()]} · {hijriLabel(h)}
             </T>
           </View>
-          <View style={[s.row, { justifyContent: 'space-between' }]}>
-            {week.map((w, i) => {
-              const done = state.doneDays.includes(w.key);
-              const isToday = i === 6;
-              return (
-                <View key={w.key} style={{ alignItems: 'center', gap: 6, flex: 1 }}>
-                  <View
-                    style={[
-                      s.dot,
-                      { backgroundColor: done ? colors.primary : isDark ? colors.border : '#E7E2D3' },
-                      isToday && !done && { backgroundColor: 'transparent', borderWidth: 2, borderStyle: 'dashed', borderColor: colors.gold },
-                    ]}
-                  >
-                    {done ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
-                  </View>
-                  <T style={{ fontSize: 11, color: isToday ? colors.goldText : colors.muted, textAlign: 'center' }}>{w.label}</T>
-                </View>
-              );
-            })}
-          </View>
-        </Card>
-
-        <T style={{ fontSize: 17, fontWeight: '700', marginTop: 4 }}>الأذكار والأدعية</T>
-        <View style={[s.grid]}>
-          {tiles.map((t) => (
-            <Pressable
-              key={t.title}
-              onPress={t.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={t.title}
-              style={({ pressed }) => [s.tile, { backgroundColor: colors.card, opacity: pressed ? 0.85 : 1 }]}
-            >
-              <View style={[s.tileIcon, { backgroundColor: t.gold ? colors.goldSoft : colors.greenSoft }]}>
-                <Ionicons name={t.icon} size={22} color={t.gold ? colors.goldText : isDark ? colors.onPrimaryMuted : colors.primary} />
+          <View style={[st.row, { gap: 8 }]}>
+            {streak > 0 ? (
+              <View style={[st.streak, { borderColor: colors.border }]}>
+                <Ionicons name="flame" size={16} color={colors.gold} />
+                <T style={{ color: colors.goldText, fontWeight: '700' }}>{toArabicDigits(streak)}</T>
               </View>
-              <T style={{ fontWeight: '600' }}>{t.title}</T>
-              <T style={{ fontSize: 12, color: colors.muted }}>{t.subtitle}</T>
+            ) : null}
+            <RoundButton icon="settings-outline" label="الإعدادات" onPress={() => push({ name: 'settings' })} />
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => push({ name: 'qibla' })}
+          accessibilityRole="button"
+          style={[st.next, { backgroundColor: colors.emerald, borderColor: colors.borderStrong }]}
+        >
+          <View style={{ gap: 2 }}>
+            <T style={{ fontSize: 12, color: colors.onEmeraldMuted }}>الصلاة القادمة · {getLocation(state).city}</T>
+            <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 30, lineHeight: 44, color: '#FFFFFF' }}>{next.name}</T>
+            <T style={{ fontSize: 13, color: '#F6DFA4' }}>{fmtTime(next.at)}</T>
+          </View>
+          <View style={{ alignItems: 'center', gap: 2 }}>
+            <T style={{ fontSize: 11, color: colors.onEmeraldMuted, textAlign: 'center' }}>متبقي</T>
+            <T style={{ fontSize: 26, fontWeight: '700', color: '#F6DFA4', letterSpacing: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+              {fmtCountdown(next.at.getTime() - now.getTime())}
+            </T>
+          </View>
+        </Pressable>
+      </View>
+
+      <View style={{ paddingHorizontal: 20, gap: 14, marginTop: 16 }}>
+        {occasions.map((o) => (
+          <View key={o.id} style={[st.occasion, { backgroundColor: colors.cardAlt, borderColor: colors.borderStrong }]}>
+            <View style={[st.occIcon, { backgroundColor: colors.goldSoft }]}>
+              <Ionicons name="sparkles-outline" size={20} color={colors.goldText} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <T style={{ fontWeight: '700', color: colors.goldText }}>{o.title}</T>
+              <T style={{ fontSize: 13, color: colors.muted, lineHeight: 21 }}>{o.body}</T>
+            </View>
+            {o.action ? (
+              <Pressable
+                onPress={() => push({ name: 'surah', n: o.action!.surah })}
+                accessibilityRole="button"
+                style={[st.occBtn, { backgroundColor: colors.gold }]}
+              >
+                <T style={{ color: '#1E130C', fontWeight: '700', fontSize: 13, textAlign: 'center' }}>{o.action.label}</T>
+              </Pressable>
+            ) : null}
+          </View>
+        ))}
+
+        <View style={[st.dua, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Divider width={120} />
+          <T style={{ color: colors.gold, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{dua.title}</T>
+          <T style={{ fontFamily: FONTS.dhikr, fontSize: 21 * state.adhkarScale, lineHeight: 40 * state.adhkarScale, textAlign: 'center' }}>{dua.text}</T>
+          <T style={{ fontSize: 12, color: colors.muted, textAlign: 'center' }}>{dua.source}</T>
+          <Pressable
+            onPress={() => share({ text: dua.text, source: dua.source, title: dua.title })}
+            accessibilityRole="button"
+            style={[st.shareBtn, { borderColor: colors.borderStrong }]}
+          >
+            <Ionicons name="share-outline" size={16} color={colors.goldText} />
+            <T style={{ color: colors.goldText, fontSize: 13, fontWeight: '600' }}>مشاركة كبوست</T>
+          </Pressable>
+        </View>
+
+        <Pressable
+          onPress={() => push({ name: 'surah', n: last?.surah ?? 1, ayah: last?.ayah })}
+          accessibilityRole="button"
+          style={[st.continue, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+        >
+          <View style={[st.contIcon, { backgroundColor: colors.emerald }]}>
+            <Ionicons name="book" size={22} color="#F6DFA4" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <T style={{ fontSize: 12, color: colors.muted }}>{last ? 'تابع القراءة' : 'ابدأ القراءة'}</T>
+            <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 19, lineHeight: 30 }}>
+              {last ? `سورة ${surah(last.surah).name} · الآية ${toArabicDigits(last.ayah)}` : 'سورة الفاتحة'}
+            </T>
+          </View>
+          <Ionicons name="chevron-back" size={18} color={colors.gold} />
+        </Pressable>
+
+        <View style={[st.grid]}>
+          {TILES.map((t) => (
+            <Pressable
+              key={t.label}
+              onPress={() => (t.route ? push(t.route) : undefined)}
+              accessibilityRole="button"
+              accessibilityLabel={t.label}
+              style={({ pressed }) => [st.tile, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
+            >
+              <View style={[st.tileIcon, { backgroundColor: t.emerald ? colors.emerald : colors.goldSoft }]}>
+                <Ionicons name={t.icon} size={21} color={t.emerald ? '#BFE3D3' : colors.goldText} />
+              </View>
+              <T style={{ fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 }}>{t.label}</T>
             </Pressable>
           ))}
         </View>
@@ -154,28 +164,19 @@ export default function HomeScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const st = StyleSheet.create({
   row: { flexDirection: ROW, alignItems: 'center' },
-  hero: { paddingHorizontal: 20, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: 18 },
-  brand: { fontFamily: 'Amiri_700Bold', fontSize: 34, lineHeight: 48 },
-  streak: { flexDirection: ROW, alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, height: 36 },
-  duaCard: { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderRadius: 20, padding: 16, gap: 6 },
-  duaText: { fontFamily: QURAN_FONT, fontSize: 21, lineHeight: 40 },
-  now: { flexDirection: ROW, alignItems: 'center', gap: 14, borderRadius: 18, padding: 16 },
-  dot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  grid: { flexDirection: ROW, flexWrap: 'wrap', gap: 12 },
-  tile: {
-    width: '47.8%',
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-    minHeight: 112,
-    alignItems: ALIGN_START,
-    shadowColor: '#0F3D2E',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  hero: { paddingHorizontal: 20, paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden', gap: 14 },
+  streak: { flexDirection: ROW, alignItems: 'center', gap: 4, height: 36, paddingHorizontal: 10, borderRadius: 18, borderWidth: 1 },
+  next: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', borderRadius: 22, borderWidth: 1, padding: 16 },
+  occasion: { flexDirection: ROW, alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1, padding: 14 },
+  occIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  occBtn: { height: 36, paddingHorizontal: 12, borderRadius: 10, justifyContent: 'center' },
+  dua: { borderRadius: 22, borderWidth: 1, padding: 18, alignItems: 'center', gap: 8 },
+  shareBtn: { flexDirection: ROW, alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1, marginTop: 4 },
+  continue: { flexDirection: ROW, alignItems: 'center', gap: 14, borderRadius: 20, borderWidth: 1, padding: 14 },
+  contIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  grid: { flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  tile: { width: '31.5%', borderRadius: 18, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 4, alignItems: 'center', gap: 8, minHeight: 100 },
+  tileIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

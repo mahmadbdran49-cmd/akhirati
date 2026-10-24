@@ -1,38 +1,69 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useColorScheme } from 'react-native';
-import { dark, light, Palette, todayKey } from './theme';
+import { ivory, Palette, royal, todayKey } from './theme';
 import type { Level } from './data/quiz';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
-
+export type ThemeName = 'royal' | 'ivory';
+export type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+export type AlertMode = 'sound' | 'silent' | 'off';
+export type CalcMethod = 'Egyptian' | 'MuslimWorldLeague' | 'UmmAlQura' | 'Karachi' | 'Dubai' | 'Kuwait' | 'Qatar' | 'Turkey' | 'NorthAmerica';
 export type Reminder = { on: boolean; hour: number; minute: number };
 
 export type AppState = {
-  themeMode: ThemeMode;
-  fontScale: number;
+  theme: ThemeName;
+  quranScale: number;
+  adhkarScale: number;
+  haptics: boolean;
+  hijriOffset: number;
+  reciter: string;
   favorites: string[];
   doneDays: string[];
   tasbih: { day: string; today: number; total: number };
-  quizBest: Record<Level, number>;
-  reminders: { morning: Reminder; evening: Reminder; sleep: Reminder };
+  quiz: { best: Record<Level, number>; daily: { day: string; score: number; total: number } | null };
+  lastRead: { surah: number; ayah: number } | null;
+  bookmarks: { surah: number; ayah: number }[];
+  location: { lat: number; lng: number; city: string } | null;
+  prayer: {
+    method: CalcMethod;
+    hanafi: boolean;
+    offsets: Record<PrayerKey, number>;
+    alerts: Record<PrayerKey, AlertMode>;
+  };
+  reminders: { morning: Reminder; evening: Reminder; sleep: Reminder; kahf: Reminder };
 };
 
+// القدس افتراضياً حتى يسمح المستخدم بتحديد موقعه
+export const DEFAULT_LOCATION = { lat: 31.7683, lng: 35.2137, city: 'القدس' };
+
 const DEFAULT_STATE: AppState = {
-  themeMode: 'system',
-  fontScale: 1,
+  theme: 'royal',
+  quranScale: 1,
+  adhkarScale: 1,
+  haptics: true,
+  hijriOffset: 0,
+  reciter: 'Alafasy_128kbps',
   favorites: [],
   doneDays: [],
   tasbih: { day: todayKey(), today: 0, total: 0 },
-  quizBest: { easy: 0, medium: 0, hard: 0 },
+  quiz: { best: { easy: 0, medium: 0, hard: 0 }, daily: null },
+  lastRead: null,
+  bookmarks: [],
+  location: null,
+  prayer: {
+    method: 'Egyptian',
+    hanafi: false,
+    offsets: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
+    alerts: { fajr: 'sound', dhuhr: 'sound', asr: 'sound', maghrib: 'sound', isha: 'sound' },
+  },
   reminders: {
-    morning: { on: false, hour: 7, minute: 0 },
-    evening: { on: false, hour: 17, minute: 0 },
+    morning: { on: true, hour: 7, minute: 0 },
+    evening: { on: true, hour: 16, minute: 30 },
     sleep: { on: false, hour: 22, minute: 0 },
+    kahf: { on: true, hour: 10, minute: 0 },
   },
 };
 
-const STORAGE_KEY = 'akhirati.state.v1';
+const STORAGE_KEY = 'akhirah.state.v2';
 
 type Ctx = {
   ready: boolean;
@@ -48,25 +79,31 @@ type Ctx = {
 
 const StoreContext = createContext<Ctx | null>(null);
 
+function merge(saved: Partial<AppState>): AppState {
+  return {
+    ...DEFAULT_STATE,
+    ...saved,
+    tasbih: { ...DEFAULT_STATE.tasbih, ...(saved.tasbih ?? {}) },
+    quiz: { ...DEFAULT_STATE.quiz, ...(saved.quiz ?? {}), best: { ...DEFAULT_STATE.quiz.best, ...(saved.quiz?.best ?? {}) } },
+    prayer: {
+      ...DEFAULT_STATE.prayer,
+      ...(saved.prayer ?? {}),
+      offsets: { ...DEFAULT_STATE.prayer.offsets, ...(saved.prayer?.offsets ?? {}) },
+      alerts: { ...DEFAULT_STATE.prayer.alerts, ...(saved.prayer?.alerts ?? {}) },
+    },
+    reminders: { ...DEFAULT_STATE.reminders, ...(saved.reminders ?? {}) },
+  };
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
   const [ready, setReady] = useState(false);
-  const scheme = useColorScheme();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (raw) {
-          const saved = JSON.parse(raw) as Partial<AppState>;
-          setState({
-            ...DEFAULT_STATE,
-            ...saved,
-            reminders: { ...DEFAULT_STATE.reminders, ...(saved.reminders ?? {}) },
-            quizBest: { ...DEFAULT_STATE.quizBest, ...(saved.quizBest ?? {}) },
-            tasbih: { ...DEFAULT_STATE.tasbih, ...(saved.tasbih ?? {}) },
-          });
-        }
+        if (raw) setState(merge(JSON.parse(raw)));
       })
       .catch(() => {})
       .finally(() => setReady(true));
@@ -104,13 +141,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const isDark = state.themeMode === 'dark' || (state.themeMode === 'system' && scheme === 'dark');
+  const isDark = state.theme === 'royal';
 
   const value = useMemo<Ctx>(
     () => ({
       ready,
       state,
-      colors: isDark ? dark : light,
+      colors: isDark ? royal : ivory,
       isDark,
       update,
       toggleFavorite,
@@ -130,7 +167,6 @@ export function useStore(): Ctx {
   return ctx;
 }
 
-// عدد الأيام المتتالية التي أنهى فيها المستخدم أذكاره
 export function streakCount(doneDays: string[]): number {
   const set = new Set(doneDays);
   let n = 0;
