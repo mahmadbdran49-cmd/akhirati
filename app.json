@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "آخرتي",
+    "slug": "akhirati",
+    "owner": "mohamadbadrans-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F3D2E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akhirati.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.akhirati.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0F3D2E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#0F3D2E",
+          "enableRemoteNotifications": false
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "forcesRTL": true,
+          "supportedLocales": ["ar"]
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4c3033d7-8d8b-4253-9b4b-58c6d7695c24"
+      }
+    }
+  }
+}
