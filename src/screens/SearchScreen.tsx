@@ -6,7 +6,7 @@ import { CATEGORIES } from '../data/adhkar';
 import { FEELINGS } from '../data/feelings';
 import { NAMES } from '../data/names';
 import { STORIES } from '../data/prophets';
-import { VIDEOS } from '../data/videos';
+import { useVideos } from '../videos';
 import { Route, useNav } from '../navigation';
 import { normalizeArabic, searchQuran, surahList } from '../quran';
 import { ROW, TEXT_START } from '../rtl';
@@ -31,6 +31,7 @@ export default function SearchScreen({ initial }: { initial?: string }) {
   const { colors } = useStore();
   const { push } = useNav();
   const [q, setQ] = useState(initial ?? '');
+  const { videos: VIDEOS } = useVideos();
 
   const groups = useMemo<Group[]>(() => {
     const nq = normalizeArabic(q);
@@ -79,7 +80,7 @@ export default function SearchScreen({ initial }: { initial?: string }) {
       { id: 'names', title: 'أسماء الله الحسنى', icon: 'star-outline' as IconName, hits: names },
       { id: 'videos', title: 'المقاطع', icon: 'play-circle-outline' as IconName, hits: videos },
     ].filter((g) => g.hits.length);
-  }, [q]);
+  }, [q, VIDEOS]);
 
   const total = groups.reduce((n, g) => n + g.hits.length, 0);
   const SUGGEST = ['الصبر', 'الرزق', 'الهم', 'يونس', 'الرحمن', 'النوم'];

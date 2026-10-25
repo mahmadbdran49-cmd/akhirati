@@ -21,7 +21,8 @@ export type Route =
   | { name: 'videos' }
   | { name: 'video'; id: string }
   | { name: 'search'; q?: string }
-  | { name: 'listen' };
+  | { name: 'listen' }
+  | { name: 'admin' };
 
 type Nav = {
   route: Route;

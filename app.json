@@ -3,7 +3,7 @@
     "name": "Akhirah",
     "slug": "akhirati",
     "owner": "mohamadbadrans-team",
-    "version": "3.0.1",
+    "version": "3.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

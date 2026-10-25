@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, Sty
 import { WebView } from 'react-native-webview';
 import { Card, Header, IconButton, Screen, T } from '../components/ui';
 import { VIDEO_CREDIT, VIDEOS, Video, findVideo, videoEmbed, videoOfTheDay, videoThumb } from '../data/videos';
+import { useVideos } from '../videos';
 import { useNav } from '../navigation';
 import { ROW } from '../rtl';
 import { useStore } from '../store';
@@ -13,7 +14,8 @@ import { FONTS } from '../theme';
 export function DailyVideoCard() {
   const { colors, state } = useStore();
   const { push } = useNav();
-  const v = videoOfTheDay();
+  const { videos } = useVideos();
+  const v = videoOfTheDay(videos);
   const seen = state.videos.watched.includes(v.id);
   return (
     <Pressable
@@ -73,7 +75,8 @@ function VideoRow({ v }: { v: Video }) {
 export function VideosScreen() {
   const { colors, state } = useStore();
   const [onlyFav, setOnlyFav] = useState(false);
-  const list = onlyFav ? VIDEOS.filter((v) => state.videos.favorites.includes(v.id)) : VIDEOS;
+  const { videos } = useVideos();
+  const list = onlyFav ? videos.filter((v) => state.videos.favorites.includes(v.id)) : videos;
   return (
     <Screen>
       <Header
@@ -96,7 +99,8 @@ export function VideoScreen({ id }: { id: string }) {
   const { colors, state, update } = useStore();
   const { replace } = useNav();
   const { width } = useWindowDimensions();
-  const v = findVideo(id) ?? VIDEOS[0];
+  const { videos } = useVideos();
+  const v = findVideo(id, videos) ?? videos[0] ?? VIDEOS[0];
   const [loading, setLoading] = useState(true);
   const fav = state.videos.favorites.includes(v.id);
   const h = Math.round(((width - 24) * 9) / 16);
@@ -111,7 +115,7 @@ export function VideoScreen({ id }: { id: string }) {
       videos: { ...s.videos, favorites: fav ? s.videos.favorites.filter((x) => x !== v.id) : [v.id, ...s.videos.favorites] },
     }));
 
-  const others = VIDEOS.filter((x) => x.id !== v.id);
+  const others = videos.filter((x) => x.id !== v.id);
 
   return (
     <Screen>

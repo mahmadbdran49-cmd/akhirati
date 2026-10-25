@@ -120,7 +120,10 @@ export default function HomeScreen() {
               <MiniRain trigger={rain} />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <T style={{ fontFamily: FONTS.logo, fontSize: 34, lineHeight: 56, color: colors.goldText }}>آخرتي</T>
+              {/* الضغط المطوّل ثانيتين على اسم التطبيق يفتح دخول الإداري (مخفي عن المستخدمين) */}
+              <Pressable onLongPress={() => push({ name: 'admin' })} delayLongPress={2000} accessibilityRole="text">
+                <T style={{ fontFamily: FONTS.logo, fontSize: 34, lineHeight: 56, color: colors.goldText }}>آخرتي</T>
+              </Pressable>
               <T style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
                 {WEEKDAYS[now.getDay()]} · {hijriLabel(h)}
               </T>

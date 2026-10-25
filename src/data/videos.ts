@@ -1,4 +1,5 @@
-// مقاطع الدكتور ياسر الحزيمي التي اختارتها عبير.
+// مقاطع الدكتور ياسر الحزيمي. هذه القائمة احتياطية داخل التطبيق،
+// والقائمة الفعلية تأتي من السيرفر وتُدار من لوحة الإدارة.
 // تُعرض داخل التطبيق بمشغّل يوتيوب الرسمي فقط (بدون تنزيل)، مع ذكر المصدر.
 import raw from '../../content/videos.json';
 import { todayKey } from '../theme';
@@ -18,12 +19,13 @@ export function videoEmbed(id: string): string {
 }
 
 // مقطع اليوم يتبدّل يومياً
-export function videoOfTheDay(date = new Date()): Video {
+export function videoOfTheDay(list: Video[] = VIDEOS, date = new Date()): Video {
+  const all = list.length ? list : VIDEOS;
   const k = todayKey(date).split('-').map(Number);
   const n = Math.floor(Date.UTC(k[0], k[1] - 1, k[2]) / 86400000);
-  return VIDEOS[n % VIDEOS.length];
+  return all[n % all.length];
 }
 
-export function findVideo(id: string): Video | undefined {
-  return VIDEOS.find((v) => v.id === id);
+export function findVideo(id: string, list: Video[] = VIDEOS): Video | undefined {
+  return list.find((v) => v.id === id) ?? VIDEOS.find((v) => v.id === id);
 }

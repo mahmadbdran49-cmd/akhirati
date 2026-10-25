@@ -19,6 +19,7 @@ import { MoreScreen, NamesScreen, StoriesScreen, StoryScreen, TasbihScreen } fro
 import { MushafIndexScreen, SurahScreen } from './src/screens/MushafScreens';
 import { PrayerScreen, QiblaScreen } from './src/screens/PrayerScreens';
 import { QuizHomeScreen, QuizPlayScreen } from './src/screens/QuizScreens';
+import AdminScreen from './src/screens/AdminScreen';
 import ListenScreen from './src/screens/ListenScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -26,6 +27,7 @@ import TreeScreen from './src/screens/TreeScreen';
 import { VideoScreen, VideosScreen } from './src/screens/VideoScreens';
 import { ShareProvider } from './src/share';
 import { StoreProvider, useStore } from './src/store';
+import { VideosProvider } from './src/videos';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -94,6 +96,8 @@ function renderRoute(r: Route, tab: Tab) {
       return <SearchScreen initial={r.q} />;
     case 'listen':
       return <ListenScreen />;
+    case 'admin':
+      return <AdminScreen />;
     default:
       return tab === 'home' ? <HomeScreen /> : tab === 'mushaf' ? <MushafIndexScreen /> : tab === 'prayer' ? <PrayerScreen /> : tab === 'adhkar' ? <AdhkarListScreen /> : <MoreScreen />;
   }
@@ -175,11 +179,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <ShareProvider>
-          <NavigationProvider>
-            <Router />
-          </NavigationProvider>
-        </ShareProvider>
+        <VideosProvider>
+          <ShareProvider>
+            <NavigationProvider>
+              <Router />
+            </NavigationProvider>
+          </ShareProvider>
+        </VideosProvider>
         {!splashDone ? <Splash onDone={onDone} /> : null}
       </StoreProvider>
     </SafeAreaProvider>
