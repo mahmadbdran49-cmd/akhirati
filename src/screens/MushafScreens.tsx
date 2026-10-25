@@ -5,9 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { Header, IconButton, Screen, T, TabHeader } from '../components/ui';
+import { Chip, Header, IconButton, Screen, T, TabHeader } from '../components/ui';
 import { useNav } from '../navigation';
-import { ayahAudioUrl, reciterName, surah, surahList } from '../quran';
+import { ayahAudioUrl, nextPos, reciterName, surah, surahList, wirdEnd } from '../quran';
 import { ROW, TEXT_START } from '../rtl';
 import { useSharePost } from '../share';
 import { useStore } from '../store';
@@ -39,6 +39,7 @@ export function MushafIndexScreen() {
             accessibilityLabel="ابحث عن سورة"
           />
         </View>
+        {!q ? <SmartWird /> : null}
         {state.lastRead && !q ? (
           <Pressable
             onPress={() => push({ name: 'surah', n: state.lastRead!.surah, ayah: state.lastRead!.ayah })}
@@ -89,10 +90,44 @@ export function MushafIndexScreen() {
   );
 }
 
+// ───────── الورد الذكي: كم دقيقة عندك؟ ─────────
+const WIRD_MINUTES = [5, 10, 15, 20, 30];
+function SmartWird() {
+  const { colors, state, update } = useStore();
+  const { push } = useNav();
+  const start = state.lastRead ? nextPos(state.lastRead) : { surah: 1, ayah: 1 };
+  const end = wirdEnd(start, state.wirdMinutes);
+  const pagesLabel = end.pages < 1 ? 'نصف صفحة' : `${toArabicDigits(Math.round(end.pages))} ${end.pages >= 3 && end.pages <= 10 ? 'صفحات' : 'صفحة'}`;
+  return (
+    <View style={[st.wird, { backgroundColor: colors.cardAlt, borderColor: colors.borderStrong }]}>
+      <View style={[st.row, { gap: 8 }]}>
+        <Ionicons name="hourglass-outline" size={18} color={colors.goldText} />
+        <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 17, lineHeight: 26, color: colors.goldText, flex: 1 }}>الورد الذكي · كم دقيقة عندك؟</T>
+      </View>
+      <View style={[st.row, { gap: 6, flexWrap: 'wrap' }]}>
+        {WIRD_MINUTES.map((m) => (
+          <Chip key={m} label={`${toArabicDigits(m)} د`} active={state.wirdMinutes === m} onPress={() => update((s0) => ({ ...s0, wirdMinutes: m }))} />
+        ))}
+      </View>
+      <T style={{ fontSize: 13, color: colors.muted, lineHeight: 21 }}>
+        حوالي {pagesLabel}: من سورة {surah(start.surah).name} ({toArabicDigits(start.ayah)}) إلى سورة {surah(end.surah).name} ({toArabicDigits(end.ayah)})
+      </T>
+      <Pressable
+        onPress={() => push({ name: 'surah', n: start.surah, ayah: start.ayah, wird: { surah: end.surah, ayah: end.ayah } })}
+        accessibilityRole="button"
+        style={[st.wirdBtn, { backgroundColor: colors.gold }]}
+      >
+        <Ionicons name="play" size={15} color="#1E130C" />
+        <Text style={{ color: '#1E130C', fontWeight: '700' }}>ابدأ وردك</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ───────── قراءة السورة ─────────
 const BLOCK = 6;
 
-export function SurahScreen({ n, ayah }: { n: number; ayah?: number }) {
+export function SurahScreen({ n, ayah, wird }: { n: number; ayah?: number; wird?: { surah: number; ayah: number } }) {
   const { colors, state, update } = useStore();
   const { replace } = useNav();
   const share = useSharePost();
@@ -212,8 +247,18 @@ export function SurahScreen({ n, ayah }: { n: number; ayah?: number }) {
     return () => clearTimeout(t);
   }, [initialIndex]);
 
+  const wirdHere = wird && wird.surah === n;
+  const wirdDone = wird && (wird.surah < n);
   const header = (
     <View style={{ gap: 6, marginBottom: 6 }}>
+      {wird ? (
+        <View style={[st.wirdBanner, { borderColor: colors.paperFrame }]}>
+          <Ionicons name={wirdDone ? 'checkmark-circle' : 'flag-outline'} size={16} color={colors.paperFrame} />
+          <Text style={{ color: colors.paperInk, fontSize: 13, fontWeight: '600', flex: 1, textAlign: TEXT_START }}>
+            {wirdDone ? 'أتممت وردك، تقبّل الله منك' : `وردك ينتهي عند سورة ${surah(wird.surah).name} · الآية ${toArabicDigits(wird.ayah)}`}
+          </Text>
+        </View>
+      ) : null}
       <View style={st.banner}>
         <Svg width="100%" height={58} viewBox="0 0 320 58" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
           <Rect x={2} y={6} width={316} height={46} rx={6} fill="#0E3B2E" stroke={colors.paperFrame} strokeWidth={2} />
@@ -233,13 +278,13 @@ export function SurahScreen({ n, ayah }: { n: number; ayah?: number }) {
   const footer = (
     <View style={[st.row, { justifyContent: 'space-between', marginTop: 14, gap: 10 }]}>
       {n > 1 ? (
-        <Pressable onPress={() => replace({ name: 'surah', n: n - 1 })} accessibilityRole="button" style={[st.navBtn, { borderColor: colors.paperFrame }]}>
+        <Pressable onPress={() => replace({ name: 'surah', n: n - 1, wird })} accessibilityRole="button" style={[st.navBtn, { borderColor: colors.paperFrame }]}>
           <Ionicons name="chevron-forward" size={16} color={colors.paperFrame} />
           <Text style={{ color: colors.paperInk, fontWeight: '600' }}>{surah(n - 1).name}</Text>
         </Pressable>
       ) : <View />}
       {n < 114 ? (
-        <Pressable onPress={() => replace({ name: 'surah', n: n + 1 })} accessibilityRole="button" style={[st.navBtn, { borderColor: colors.paperFrame }]}>
+        <Pressable onPress={() => replace({ name: 'surah', n: n + 1, wird })} accessibilityRole="button" style={[st.navBtn, { borderColor: colors.paperFrame }]}>
           <Text style={{ color: colors.paperInk, fontWeight: '600' }}>{surah(n + 1).name}</Text>
           <Ionicons name="chevron-back" size={16} color={colors.paperFrame} />
         </Pressable>
@@ -277,6 +322,7 @@ export function SurahScreen({ n, ayah }: { n: number; ayah?: number }) {
                     >
                       {s.verses[a - 1]}
                       <Text style={{ color: colors.paperFrame, fontFamily: FONTS.dhikr }}>{` ﴿${toArabicDigits(a)}﴾ `}</Text>
+                      {wirdHere && wird!.ayah === a ? <Text style={{ color: colors.paperFrame, fontWeight: '700', fontSize: 14 }}>{' ◆ نهاية الورد ◆ '}</Text> : null}
                     </Text>
                   );
                 })}
@@ -349,6 +395,9 @@ export function SurahScreen({ n, ayah }: { n: number; ayah?: number }) {
 const st = StyleSheet.create({
   row: { flexDirection: ROW, alignItems: 'center' },
   search: { flexDirection: ROW, alignItems: 'center', gap: 8, height: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14 },
+  wird: { borderRadius: 18, borderWidth: 1, padding: 14, gap: 10 },
+  wirdBtn: { flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: 12 },
+  wirdBanner: { flexDirection: ROW, alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 },
   resume: { flexDirection: ROW, alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14 },
   surahRow: { flexDirection: ROW, alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 12 },
   numWrap: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },

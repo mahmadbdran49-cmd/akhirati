@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ivory, Palette, royal, todayKey } from './theme';
+import { daysBetween, Palette, ThemeName, THEMES, todayKey } from './theme';
 import type { Level } from './data/quiz';
 
-export type ThemeName = 'royal' | 'ivory';
+export type { ThemeName } from './theme';
 export type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 export type AlertMode = 'sound' | 'silent' | 'off';
 export type CalcMethod = 'Egyptian' | 'MuslimWorldLeague' | 'UmmAlQura' | 'Karachi' | 'Dubai' | 'Kuwait' | 'Qatar' | 'Turkey' | 'NorthAmerica';
@@ -11,6 +11,11 @@ export type Reminder = { on: boolean; hour: number; minute: number };
 
 export type AppState = {
   theme: ThemeName;
+  minimal: boolean;
+  tree: { lastCare: string; waterings: number };
+  tipSeen: boolean;
+  videos: { watched: string[]; favorites: string[] };
+  wirdMinutes: number;
   quranScale: number;
   adhkarScale: number;
   haptics: boolean;
@@ -36,7 +41,12 @@ export type AppState = {
 export const DEFAULT_LOCATION = { lat: 31.7683, lng: 35.2137, city: 'القدس' };
 
 const DEFAULT_STATE: AppState = {
-  theme: 'royal',
+  theme: 'main',
+  minimal: false,
+  tree: { lastCare: todayKey(), waterings: 0 },
+  tipSeen: false,
+  videos: { watched: [], favorites: [] },
+  wirdMinutes: 10,
   quranScale: 1,
   adhkarScale: 1,
   haptics: true,
@@ -65,6 +75,11 @@ const DEFAULT_STATE: AppState = {
 
 const STORAGE_KEY = 'akhirah.state.v2';
 
+// حالة الشجرة حسب آخر عناية
+export function treeDaysAway(lastCare: string): number {
+  return Math.max(0, daysBetween(lastCare));
+}
+
 type Ctx = {
   ready: boolean;
   state: AppState;
@@ -75,6 +90,7 @@ type Ctx = {
   isFavorite: (id: string) => boolean;
   markTodayDone: () => void;
   addTasbih: (n?: number) => void;
+  waterTree: () => void;
 };
 
 const StoreContext = createContext<Ctx | null>(null);
@@ -92,6 +108,9 @@ function merge(saved: Partial<AppState>): AppState {
       alerts: { ...DEFAULT_STATE.prayer.alerts, ...(saved.prayer?.alerts ?? {}) },
     },
     reminders: { ...DEFAULT_STATE.reminders, ...(saved.reminders ?? {}) },
+    tree: { ...DEFAULT_STATE.tree, ...(saved.tree ?? {}) },
+    videos: { ...DEFAULT_STATE.videos, ...(saved.videos ?? {}) },
+    theme: saved.theme && saved.theme in THEMES ? saved.theme : DEFAULT_STATE.theme,
   };
 }
 
@@ -103,7 +122,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (raw) setState(merge(JSON.parse(raw)));
+        let st = raw ? merge(JSON.parse(raw)) : DEFAULT_STATE;
+        // فتح التطبيق يومياً يحافظ على الشجرة، أما الغياب أكثر من يوم فيجعلها تذبل حتى يسقيها بالذكر
+        if (treeDaysAway(st.tree.lastCare) <= 1) st = { ...st, tree: { ...st.tree, lastCare: todayKey() } };
+        setState(st);
       })
       .catch(() => {})
       .finally(() => setReady(true));
@@ -137,25 +159,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const key = todayKey();
     setState((s) => {
       const today = s.tasbih.day === key ? s.tasbih.today : 0;
-      return { ...s, tasbih: { day: key, today: today + n, total: s.tasbih.total + n } };
+      // كل ذكر يسقي الشجرة، وكل عشرة أذكار تُحسب سقية كاملة
+      const drops = Math.floor((s.tasbih.total + n) / 10) - Math.floor(s.tasbih.total / 10);
+      return {
+        ...s,
+        tasbih: { day: key, today: today + n, total: s.tasbih.total + n },
+        tree: { lastCare: key, waterings: s.tree.waterings + drops },
+      };
     });
   }, []);
 
-  const isDark = state.theme === 'royal';
+  const waterTree = useCallback(() => {
+    setState((s) => ({ ...s, tree: { lastCare: todayKey(), waterings: s.tree.waterings + 1 } }));
+  }, []);
+
+  const palette = THEMES[state.theme] ?? THEMES.main;
+  const isDark = palette.dark;
 
   const value = useMemo<Ctx>(
     () => ({
       ready,
       state,
-      colors: isDark ? royal : ivory,
+      colors: palette,
       isDark,
       update,
       toggleFavorite,
       isFavorite: (id: string) => state.favorites.includes(id),
       markTodayDone,
       addTasbih,
+      waterTree,
     }),
-    [ready, state, isDark, update, toggleFavorite, markTodayDone, addTasbih]
+    [ready, state, palette, isDark, update, toggleFavorite, markTodayDone, addTasbih, waterTree]
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

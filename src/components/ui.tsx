@@ -30,8 +30,9 @@ export function T({
 }
 
 // نقش إسلامي (نجمة ثمانية) يتكرر في الخلفية
-export function IslamicPattern({ opacity = 0.1, color, size = 46 }: { opacity?: number; color?: string; size?: number }) {
-  const { colors } = useStore();
+export function IslamicPattern({ opacity = 0.1, color, size = 46, force }: { opacity?: number; color?: string; size?: number; force?: boolean }) {
+  const { colors, state } = useStore();
+  if (state.minimal && !force) return null;
   const c = color ?? colors.pattern;
   const h = size / 2;
   const k = size * 0.09;

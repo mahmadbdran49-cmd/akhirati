@@ -19,7 +19,11 @@ import { MoreScreen, NamesScreen, StoriesScreen, StoryScreen, TasbihScreen } fro
 import { MushafIndexScreen, SurahScreen } from './src/screens/MushafScreens';
 import { PrayerScreen, QiblaScreen } from './src/screens/PrayerScreens';
 import { QuizHomeScreen, QuizPlayScreen } from './src/screens/QuizScreens';
+import ListenScreen from './src/screens/ListenScreen';
+import SearchScreen from './src/screens/SearchScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import TreeScreen from './src/screens/TreeScreen';
+import { VideoScreen, VideosScreen } from './src/screens/VideoScreens';
 import { ShareProvider } from './src/share';
 import { StoreProvider, useStore } from './src/store';
 
@@ -59,7 +63,7 @@ function renderRoute(r: Route, tab: Tab) {
     case 'reader':
       return <ReaderScreen route={r} />;
     case 'surah':
-      return <SurahScreen n={r.n} ayah={r.ayah} />;
+      return <SurahScreen n={r.n} ayah={r.ayah} wird={r.wird} />;
     case 'feelings':
       return <FeelingsScreen />;
     case 'quiz':
@@ -80,6 +84,16 @@ function renderRoute(r: Route, tab: Tab) {
       return <FavoritesScreen />;
     case 'settings':
       return <SettingsScreen />;
+    case 'tree':
+      return <TreeScreen />;
+    case 'videos':
+      return <VideosScreen />;
+    case 'video':
+      return <VideoScreen id={r.id} />;
+    case 'search':
+      return <SearchScreen initial={r.q} />;
+    case 'listen':
+      return <ListenScreen />;
     default:
       return tab === 'home' ? <HomeScreen /> : tab === 'mushaf' ? <MushafIndexScreen /> : tab === 'prayer' ? <PrayerScreen /> : tab === 'adhkar' ? <AdhkarListScreen /> : <MoreScreen />;
   }
@@ -126,7 +140,7 @@ function NotificationsSync() {
 function Router() {
   const { stack, tab } = useNav();
   const { ready, colors, isDark } = useStore();
-  if (!ready) return <View style={{ flex: 1, backgroundColor: '#1E130C' }} />;
+  if (!ready) return <View style={{ flex: 1, backgroundColor: '#0E0A07' }} />;
   const layers: Route[] = [{ name: 'tab', tab }, ...stack];
   const showTabs = stack.length === 0;
   return (
@@ -149,7 +163,7 @@ function Router() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Amiri_400Regular, Amiri_700Bold, AmiriQuran_400Regular, ArefRuqaa_700Bold });
+  const [fontsLoaded] = useFonts({ Amiri_400Regular, Amiri_700Bold, AmiriQuran_400Regular, ArefRuqaa_700Bold, UthmanicHafs: require('./assets/fonts/UthmanicHafs.ttf') });
   const [splashDone, setSplashDone] = useState(false);
   const onDone = useCallback(() => setSplashDone(true), []);
 
@@ -157,7 +171,7 @@ export default function App() {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#1E130C' }} />;
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#0E0A07' }} />;
   return (
     <SafeAreaProvider>
       <StoreProvider>

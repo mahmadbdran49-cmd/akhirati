@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TreeBadge, treeState } from '../components/Tree';
 import { Divider, IconName, IslamicPattern, RoundButton, T } from '../components/ui';
+import Waves from '../components/Waves';
 import { duaForDay, hijriLabel, occasionsFor, toHijri, WEEKDAYS } from '../hijri';
 import { Route, Tab, useNav } from '../navigation';
 import { getLocation, nextPrayer } from '../prayer';
@@ -11,6 +14,7 @@ import { ROW } from '../rtl';
 import { useSharePost } from '../share';
 import { streakCount, useStore } from '../store';
 import { FONTS, fmtCountdown, fmtTime, toArabicDigits } from '../theme';
+import { DailyVideoCard } from './VideoScreens';
 
 type Tile = { label: string; icon: IconName; route?: Route; tab?: Tab; emerald?: boolean };
 
@@ -27,11 +31,61 @@ const TILES: Tile[] = [
   { label: 'اختبر معلوماتك', icon: 'trophy-outline', route: { name: 'quiz' }, emerald: true },
   { label: 'أدعية قرآنية', icon: 'book-outline', route: { name: 'reader', source: 'category', id: 'quran' } },
   { label: 'المفضلة', icon: 'heart-outline', route: { name: 'favorites' }, emerald: true },
+  { label: 'مكتبة المقاطع', icon: 'play-circle-outline', route: { name: 'videos' } },
+  { label: 'القرآن في الطريق', icon: 'car-outline', route: { name: 'listen' }, emerald: true },
+  { label: 'شجرة عباداتك', icon: 'leaf-outline', route: { name: 'tree' } },
 ];
 
+const QUICK = ['أستغفر الله', 'سبحان الله', 'الحمد لله'];
+
+// مطر صغير فوق شعار الشجرة
+function MiniRain({ trigger }: { trigger: number }) {
+  const v = useRef(new Animated.Value(0)).current;
+  const o = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!trigger) return;
+    v.setValue(0);
+    Animated.parallel([
+      Animated.sequence([Animated.timing(o, { toValue: 1, duration: 120, useNativeDriver: true }), Animated.delay(900), Animated.timing(o, { toValue: 0, duration: 300, useNativeDriver: true })]),
+      Animated.loop(Animated.timing(v, { toValue: 1, duration: 520, easing: Easing.linear, useNativeDriver: true }), { iterations: 3 }),
+    ]).start();
+  }, [trigger, v, o]);
+  const y = v.interpolate({ inputRange: [0, 1], outputRange: [-22, 46] });
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: o, overflow: 'hidden', borderRadius: 32 }]}>
+      <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 10, transform: [{ translateY: y }] }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <View key={i} style={{ width: 2.5, height: 9, borderRadius: 2, backgroundColor: '#A9D8F0', marginTop: (i % 2) * 8 }} />
+        ))}
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen() {
-  const { colors, state } = useStore();
+  const { colors, state, update, addTasbih } = useStore();
   const { push } = useNav();
+  const [quick, setQuick] = useState(0);
+  const [rain, setRain] = useState(0);
+  const shine = useRef(new Animated.Value(0)).current;
+  const tree = treeState(state.tree.lastCare);
+
+  useEffect(() => {
+    if (state.minimal) return;
+    const loop = Animated.loop(
+      Animated.sequence([Animated.timing(shine, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }), Animated.delay(3800)])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shine, state.minimal]);
+
+  function say() {
+    addTasbih(1);
+    const n = quick + 1;
+    setQuick(n);
+    if (state.haptics) Haptics.selectionAsync().catch(() => {});
+    if (n % 10 === 0) setRain((r) => r + 1);
+  }
   const share = useSharePost();
   const insets = useSafeAreaInsets();
   const [now, setNow] = useState(new Date());
@@ -53,11 +107,24 @@ export default function HomeScreen() {
       <View style={[st.hero, { paddingTop: insets.top + 14, backgroundColor: colors.bg2, borderColor: colors.border }]}>
         <IslamicPattern opacity={0.1} />
         <View style={[st.row, { justifyContent: 'space-between' }]}>
-          <View>
-            <T style={{ fontFamily: FONTS.logo, fontSize: 34, lineHeight: 56, color: colors.goldText }}>آخرتي</T>
-            <T style={{ fontSize: 12, color: colors.muted }}>
-              {WEEKDAYS[now.getDay()]} · {hijriLabel(h)}
-            </T>
+          <View style={[st.row, { gap: 12, flex: 1 }]}>
+            <Pressable
+              onPress={() => {
+                if (!state.tipSeen) update((x) => ({ ...x, tipSeen: true }));
+                push({ name: 'tree' });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="شجرة عباداتك"
+            >
+              <TreeBadge state={tree} size={60} />
+              <MiniRain trigger={rain} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <T style={{ fontFamily: FONTS.logo, fontSize: 34, lineHeight: 56, color: colors.goldText }}>آخرتي</T>
+              <T style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
+                {WEEKDAYS[now.getDay()]} · {hijriLabel(h)}
+              </T>
+            </View>
           </View>
           <View style={[st.row, { gap: 8 }]}>
             {streak > 0 ? (
@@ -66,15 +133,49 @@ export default function HomeScreen() {
                 <T style={{ color: colors.goldText, fontWeight: '700' }}>{toArabicDigits(streak)}</T>
               </View>
             ) : null}
+            <RoundButton icon="search" label="البحث" onPress={() => push({ name: 'search' })} />
             <RoundButton icon="settings-outline" label="الإعدادات" onPress={() => push({ name: 'settings' })} />
           </View>
         </View>
+
+        {!state.tipSeen ? (
+          <Pressable onPress={() => update((x) => ({ ...x, tipSeen: true }))} style={[st.tip, { backgroundColor: colors.gold }]} accessibilityRole="button">
+            <View style={[st.tipArrow, { borderBottomColor: colors.gold }]} />
+            <T style={{ color: '#1E130C', fontSize: 13, fontWeight: '700', flex: 1 }}>هنا شجرة عباداتك 🌳 انظر إليها واعتنِ بها</T>
+            <Ionicons name="close" size={16} color="#1E130C" />
+          </Pressable>
+        ) : null}
+
+        <View style={[st.row, { gap: 8 }]}>
+          {QUICK.map((d) => (
+            <Pressable
+              key={d}
+              onPress={say}
+              accessibilityRole="button"
+              accessibilityLabel={d}
+              style={({ pressed }) => [st.quick, { borderColor: colors.borderStrong, backgroundColor: pressed ? colors.gold : colors.goldSoft }]}
+            >
+              <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 15, lineHeight: 24, color: colors.goldText, textAlign: 'center' }}>{d}</T>
+            </Pressable>
+          ))}
+        </View>
+        {quick > 0 ? (
+          <T style={{ fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: -6 }}>
+            {toArabicDigits(quick)} ذكر الآن · كل ١٠ أذكار تمطر على شجرتك
+          </T>
+        ) : null}
 
         <Pressable
           onPress={() => push({ name: 'qibla' })}
           accessibilityRole="button"
           style={[st.next, { backgroundColor: colors.emerald, borderColor: colors.borderStrong }]}
         >
+          {!state.minimal ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[st.shine, { transform: [{ translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [-120, 520] }) }, { rotate: '18deg' }] }]}
+            />
+          ) : null}
           <View style={{ gap: 2 }}>
             <T style={{ fontSize: 12, color: colors.onEmeraldMuted }}>الصلاة القادمة · {getLocation(state).city}</T>
             <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 30, lineHeight: 44, color: '#FFFFFF' }}>{next.name}</T>
@@ -87,6 +188,7 @@ export default function HomeScreen() {
             </T>
           </View>
         </Pressable>
+        <Waves />
       </View>
 
       <View style={{ paddingHorizontal: 20, gap: 14, marginTop: 16 }}>
@@ -110,6 +212,8 @@ export default function HomeScreen() {
             ) : null}
           </View>
         ))}
+
+        <DailyVideoCard />
 
         <View style={[st.dua, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Divider width={120} />
@@ -166,9 +270,13 @@ export default function HomeScreen() {
 
 const st = StyleSheet.create({
   row: { flexDirection: ROW, alignItems: 'center' },
-  hero: { paddingHorizontal: 20, paddingBottom: 18, borderBottomWidth: 1, overflow: 'hidden', gap: 14 },
+  hero: { paddingHorizontal: 20, paddingBottom: 62, overflow: 'hidden', gap: 14 },
+  quick: { flex: 1, height: 44, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tip: { flexDirection: ROW, alignItems: 'center', gap: 8, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12, marginTop: -4 },
+  tipArrow: { position: 'absolute', top: -7, right: 24, width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderBottomWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
+  shine: { position: 'absolute', top: -30, bottom: -30, width: 40, backgroundColor: 'rgba(255,240,205,0.13)' },
   streak: { flexDirection: ROW, alignItems: 'center', gap: 4, height: 36, paddingHorizontal: 10, borderRadius: 18, borderWidth: 1 },
-  next: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', borderRadius: 22, borderWidth: 1, padding: 16 },
+  next: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', borderRadius: 22, borderWidth: 1, padding: 16, overflow: 'hidden' },
   occasion: { flexDirection: ROW, alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1, padding: 14 },
   occIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   occBtn: { height: 36, paddingHorizontal: 12, borderRadius: 10, justifyContent: 'center' },

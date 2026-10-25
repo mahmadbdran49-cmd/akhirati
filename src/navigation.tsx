@@ -6,7 +6,7 @@ export type Tab = 'home' | 'mushaf' | 'prayer' | 'adhkar' | 'more';
 export type Route =
   | { name: 'tab'; tab: Tab }
   | { name: 'reader'; source: 'category' | 'feeling' | 'favorites'; id: string; start?: number }
-  | { name: 'surah'; n: number; ayah?: number }
+  | { name: 'surah'; n: number; ayah?: number; wird?: { surah: number; ayah: number } }
   | { name: 'feelings' }
   | { name: 'quiz' }
   | { name: 'quizPlay'; mode: 'level' | 'daily'; level?: 'easy' | 'medium' | 'hard' }
@@ -16,7 +16,12 @@ export type Route =
   | { name: 'story'; id: string }
   | { name: 'names' }
   | { name: 'favorites' }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  | { name: 'tree' }
+  | { name: 'videos' }
+  | { name: 'video'; id: string }
+  | { name: 'search'; q?: string }
+  | { name: 'listen' };
 
 type Nav = {
   route: Route;
