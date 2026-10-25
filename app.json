@@ -3,7 +3,7 @@
     "name": "Akhirah",
     "slug": "akhirati",
     "owner": "mohamadbadrans-team",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.akhirati.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#5A2E16",
         "foregroundImage": "./assets/android-icon-foreground.png",

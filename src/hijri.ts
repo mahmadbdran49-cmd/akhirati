@@ -62,7 +62,7 @@ export function occasionsFor(date: Date, h: Hijri): Occasion[] {
     list.push({
       id: 'friday',
       title: 'جمعة مباركة',
-      body: 'اقرأ سورة الكهف، وأكثِر من الصلاة على النبي ﷺ، وتحرَّ ساعة الإجابة آخر ساعة من العصر.',
+      body: 'اقرأ سورة الكهف، وأكثِر من الصلاة على النبي ﷺ، وتحرَّ ساعة الإجابة آخر ساعة بعد العصر.',
       action: { label: 'الكهف', surah: 18 },
     });
   }
