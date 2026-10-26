@@ -21,6 +21,7 @@ import { PrayerScreen, QiblaScreen } from './src/screens/PrayerScreens';
 import { QuizHomeScreen, QuizPlayScreen } from './src/screens/QuizScreens';
 import AdminScreen from './src/screens/AdminScreen';
 import ListenScreen from './src/screens/ListenScreen';
+import PlusScreen from './src/screens/PlusScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TreeScreen from './src/screens/TreeScreen';
@@ -28,6 +29,7 @@ import { VideoScreen, VideosScreen } from './src/screens/VideoScreens';
 import { ShareProvider } from './src/share';
 import { StoreProvider, useStore } from './src/store';
 import { VideosProvider } from './src/videos';
+import { PurchasesProvider } from './src/purchases';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -98,6 +100,8 @@ function renderRoute(r: Route, tab: Tab) {
       return <ListenScreen />;
     case 'admin':
       return <AdminScreen />;
+    case 'plus':
+      return <PlusScreen />;
     default:
       return tab === 'home' ? <HomeScreen /> : tab === 'mushaf' ? <MushafIndexScreen /> : tab === 'prayer' ? <PrayerScreen /> : tab === 'adhkar' ? <AdhkarListScreen /> : <MoreScreen />;
   }
@@ -179,13 +183,15 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <VideosProvider>
-          <ShareProvider>
+        <PurchasesProvider>
+          <VideosProvider>
             <NavigationProvider>
-              <Router />
+              <ShareProvider>
+                <Router />
+              </ShareProvider>
             </NavigationProvider>
-          </ShareProvider>
-        </VideosProvider>
+          </VideosProvider>
+        </PurchasesProvider>
         {!splashDone ? <Splash onDone={onDone} /> : null}
       </StoreProvider>
     </SafeAreaProvider>

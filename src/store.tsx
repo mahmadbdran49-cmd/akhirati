@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { daysBetween, Palette, ThemeName, THEMES, todayKey } from './theme';
+import { daysBetween, Palette, PLUS_THEMES, ThemeName, THEMES, todayKey } from './theme';
 import type { Level } from './data/quiz';
 
 export type { ThemeName } from './theme';
@@ -16,6 +16,10 @@ export type AppState = {
   tipSeen: boolean;
   videos: { watched: string[]; favorites: string[] };
   wirdMinutes: number;
+  plus: boolean;
+  supportCount: number;
+  customDhikr: string[];
+  goldenTree: boolean;
   quranScale: number;
   adhkarScale: number;
   haptics: boolean;
@@ -47,6 +51,10 @@ const DEFAULT_STATE: AppState = {
   tipSeen: false,
   videos: { watched: [], favorites: [] },
   wirdMinutes: 10,
+  plus: false,
+  supportCount: 0,
+  customDhikr: [],
+  goldenTree: false,
   quranScale: 1,
   adhkarScale: 1,
   haptics: true,
@@ -173,7 +181,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, tree: { lastCare: todayKey(), waterings: s.tree.waterings + 1 } }));
   }, []);
 
-  const palette = THEMES[state.theme] ?? THEMES.main;
+  // ألوان بلس تعمل فقط لمشتركي بلس
+  const themeName: ThemeName = !state.plus && PLUS_THEMES.includes(state.theme) ? 'main' : state.theme;
+  const palette = THEMES[themeName] ?? THEMES.main;
   const isDark = palette.dark;
 
   const value = useMemo<Ctx>(

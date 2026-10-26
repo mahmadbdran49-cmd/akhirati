@@ -12,7 +12,7 @@ export const QUICK_DHIKR = ['أستغفر الله', 'سبحان الله', 'ا�
 
 // شجرة العبادات كاملة: تزهر بالمداومة، وتمطر عليها مع كل عشرة أذكار
 export default function TreeScreen() {
-  const { colors, state, addTasbih, isDark } = useStore();
+  const { colors, state, addTasbih, isDark, update } = useStore();
   const { push } = useNav();
   const { width } = useWindowDimensions();
   const ref = useRef<TreeHandle>(null);
@@ -38,12 +38,22 @@ export default function TreeScreen() {
       <Header title="شجرة عباداتك" subtitle="تزهر بالمداومة على الذكر" />
       <ScrollView contentContainerStyle={{ paddingBottom: 40, alignItems: 'center', gap: 14 }}>
         <Pressable onPress={() => ref.current?.sway()} accessibilityRole="image" accessibilityLabel={`الشجرة: ${TREE_MESSAGES[ts.stage]}`}>
-          <TreeArt ref={ref} state={ts} width={artW} night={isDark} />
+          <TreeArt ref={ref} state={ts} width={artW} night={isDark} golden={state.plus && state.goldenTree} />
         </Pressable>
 
         <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 21, lineHeight: 34, color: colors.goldText, textAlign: 'center', paddingHorizontal: 24 }}>
           {TREE_MESSAGES[ts.stage]}
         </T>
+        <Pressable
+          onPress={() => (state.plus ? update((x) => ({ ...x, goldenTree: !x.goldenTree })) : push({ name: 'plus' }))}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: state.plus && state.goldenTree }}
+          style={[st.golden, { borderColor: colors.borderStrong, backgroundColor: state.plus && state.goldenTree ? colors.gold : colors.goldSoft }]}
+        >
+          <T style={{ fontSize: 13, fontWeight: '700', color: state.plus && state.goldenTree ? '#1E130C' : colors.goldText, textAlign: 'center' }}>
+            {state.plus ? (state.goldenTree ? '✦ الشجرة الذهبية مفعّلة' : '✦ فعّل الشجرة الذهبية') : '✦ الشجرة الذهبية · آخرتي بلس'}
+          </T>
+        </Pressable>
         {ts.stage !== 'bloom' ? (
           <T style={{ fontSize: 13, color: colors.muted, textAlign: 'center', paddingHorizontal: 30, lineHeight: 21 }}>
             {ts.fallen ? 'لا بأس، اذكر الله الآن وستعود شجرتك للحياة من جديد' : 'كل ذكر يسقيها، وكل عشرة أذكار ينزل عليها المطر'}
@@ -89,5 +99,6 @@ export default function TreeScreen() {
 const st = StyleSheet.create({
   row: { flexDirection: ROW, alignItems: 'center' },
   dhikr: { flexGrow: 1, minWidth: '30%', height: 52, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  golden: { height: 38, paddingHorizontal: 16, borderRadius: 19, borderWidth: 1, justifyContent: 'center' },
   link: { borderWidth: 1, borderRadius: 14, padding: 12 },
 });

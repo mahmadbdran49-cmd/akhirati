@@ -7,17 +7,22 @@ import Svg, { Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 import { Button, Divider, IslamicPattern, T } from './components/ui';
 import { ROW } from './rtl';
+import { useNav } from './navigation';
 import { useStore } from './store';
 import { FONTS } from './theme';
 
 export type SharePayload = { text: string; source: string; title?: string };
 
-type Template = { id: string; label: string; bg: string; glow: string; gold: string; text: string; sub: string; pattern: number };
+type Template = { id: string; label: string; bg: string; glow: string; gold: string; text: string; sub: string; pattern: number; plus?: boolean };
 
 const TEMPLATES: Template[] = [
   { id: 'emerald', label: 'زمردي', bg: '#0B2E24', glow: '#145A45', gold: '#D9B56A', text: '#FBF3E0', sub: '#CFE0D7', pattern: 0.14 },
   { id: 'royal', label: 'ملكي', bg: '#1A100A', glow: '#3B2416', gold: '#D9B56A', text: '#F7ECD6', sub: '#C9B48E', pattern: 0.15 },
   { id: 'ivory', label: 'عاجي', bg: '#EFE2C6', glow: '#FFF9EC', gold: '#A0752A', text: '#2A1A10', sub: '#6E5636', pattern: 0.2 },
+  // قوالب آخرتي بلس
+  { id: 'night', label: 'ليلي', bg: '#060B1A', glow: '#1A2A5E', gold: '#E2C47A', text: '#F2F0FA', sub: '#B9C1E0', pattern: 0.16, plus: true },
+  { id: 'rose', label: 'وردي', bg: '#3A1E24', glow: '#6E3A44', gold: '#E9C48A', text: '#FBEFEA', sub: '#E3C2C0', pattern: 0.14, plus: true },
+  { id: 'marble', label: 'رخامي', bg: '#F4F1EC', glow: '#FFFFFF', gold: '#B08D47', text: '#1F1A14', sub: '#6B6152', pattern: 0.12, plus: true },
 ];
 
 const W = 340;
@@ -58,7 +63,8 @@ function PostCard({ p, t }: { p: SharePayload; t: Template }) {
 const ShareContext = createContext<(p: SharePayload) => void>(() => {});
 
 export function ShareProvider({ children }: { children: ReactNode }) {
-  const { colors } = useStore();
+  const { colors, state } = useStore();
+  const { push } = useNav();
   const insets = useSafeAreaInsets();
   const [payload, setPayload] = useState<SharePayload | null>(null);
   const [tpl, setTpl] = useState(0);
@@ -106,7 +112,7 @@ export function ShareProvider({ children }: { children: ReactNode }) {
               <View ref={ref} collapsable={false} style={{ borderRadius: 4, overflow: 'hidden' }}>
                 <PostCard p={payload} t={TEMPLATES[tpl]} />
               </View>
-              <View style={[{ flexDirection: ROW, gap: 10 }]}>
+              <View style={[{ flexDirection: ROW, gap: 8, justifyContent: 'center', width: W }]}>
                 {TEMPLATES.map((t, i) => (
                   <Pressable
                     key={t.id}
@@ -117,11 +123,25 @@ export function ShareProvider({ children }: { children: ReactNode }) {
                     style={[st.swatch, { backgroundColor: t.bg, borderColor: tpl === i ? colors.goldText : 'rgba(255,255,255,0.3)' }]}
                   >
                     <T style={{ color: t.gold, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>{t.label}</T>
+                    {t.plus && !state.plus ? <T style={{ position: 'absolute', top: 1, left: 4, fontSize: 9, color: t.gold }}>✦</T> : null}
                   </Pressable>
                 ))}
               </View>
               <View style={{ flexDirection: ROW, gap: 10, width: W }}>
-                <Button title={busy ? 'جارٍ التجهيز…' : 'مشاركة كصورة'} icon="share-social" variant="gold" style={{ flex: 1 }} onPress={shareImage} disabled={busy} />
+                {TEMPLATES[tpl].plus && !state.plus ? (
+                  <Button
+                    title="متاح في آخرتي بلس"
+                    icon="sparkles"
+                    variant="gold"
+                    style={{ flex: 1 }}
+                    onPress={() => {
+                      setPayload(null);
+                      push({ name: 'plus' });
+                    }}
+                  />
+                ) : (
+                  <Button title={busy ? 'جارٍ التجهيز…' : 'مشاركة كصورة'} icon="share-social" variant="gold" style={{ flex: 1 }} onPress={shareImage} disabled={busy} />
+                )}
                 <Button title={copied ? 'تم النسخ' : 'نسخ النص'} icon={copied ? 'checkmark' : 'copy-outline'} variant="outline" style={{ flex: 0.7 }} onPress={copyText} />
               </View>
             </View>
@@ -138,5 +158,5 @@ export function useSharePost() {
 
 const st = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(8,5,3,0.88)', alignItems: 'center', justifyContent: 'center' },
-  swatch: { width: 64, height: 40, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: 50, height: 38, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

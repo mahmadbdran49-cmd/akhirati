@@ -116,7 +116,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="شجرة عباداتك"
             >
-              <TreeBadge state={tree} size={60} />
+              <TreeBadge state={tree} size={60} golden={state.plus && state.goldenTree} />
               <MiniRain trigger={rain} />
             </Pressable>
             <View style={{ flex: 1 }}>

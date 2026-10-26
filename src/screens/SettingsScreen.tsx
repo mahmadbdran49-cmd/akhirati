@@ -7,7 +7,8 @@ import { detectLocation, getLocation, METHODS, PRAYER_NAMES } from '../prayer';
 import { RECITERS } from '../quran';
 import { ROW } from '../rtl';
 import { AlertMode, AppState, PrayerKey, useStore } from '../store';
-import { FONTS, THEME_LABELS, ThemeName, THEMES, toArabicDigits } from '../theme';
+import { FONTS, PLUS_THEMES, THEME_LABELS, ThemeName, THEMES, toArabicDigits } from '../theme';
+import { useNav } from '../navigation';
 
 const SIZES = [
   { v: 0.85, label: 'صغير' },
@@ -63,6 +64,7 @@ function Stepper({ value, onMinus, onPlus, width = 84 }: { value: string; onMinu
 
 export default function SettingsScreen() {
   const { colors, state, update } = useStore();
+  const { push } = useNav();
   const [locating, setLocating] = useState(false);
   const set = (fn: (s: AppState) => AppState) => update(fn);
   const sw = { true: colors.emerald, false: colors.border };
@@ -71,15 +73,24 @@ export default function SettingsScreen() {
     <Screen>
       <Header title="الإعدادات" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 14 }}>
+        <Pressable onPress={() => push({ name: 'plus' })} accessibilityRole="button" style={[st.row, st.plusCard, { backgroundColor: colors.emerald, borderColor: colors.borderStrong }]}>
+          <Ionicons name="sparkles" size={22} color="#F6DFA4" />
+          <View style={{ flex: 1 }}>
+            <T style={{ fontWeight: '800', color: '#FFFFFF' }}>{state.plus ? 'آخرتي بلس مفعّل ✦' : 'آخرتي بلس'}</T>
+            <T style={{ fontSize: 12, color: colors.onEmeraldMuted }}>{state.plus ? 'جزاك الله خيراً على دعمك' : 'ألوان وقوالب حصرية، وادعم استمرار التطبيق'}</T>
+          </View>
+          <Ionicons name="chevron-back" size={18} color="#F6DFA4" />
+        </Pressable>
         <Section title="المظهر" icon="color-palette-outline">
           <View style={[st.row, { gap: 8, flexWrap: 'wrap' }]}>
             {(Object.keys(THEMES) as ThemeName[]).map((id) => {
               const p = THEMES[id];
-              const on = state.theme === id;
+              const locked = !state.plus && PLUS_THEMES.includes(id);
+              const on = state.theme === id && !locked;
               return (
                 <Pressable
                   key={id}
-                  onPress={() => set((s) => ({ ...s, theme: id }))}
+                  onPress={() => (locked ? push({ name: 'plus' }) : set((s) => ({ ...s, theme: id })))}
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
                   style={[st.themeCard, { backgroundColor: p.bg, borderColor: on ? colors.goldText : colors.border }]}
@@ -91,6 +102,12 @@ export default function SettingsScreen() {
                   <T style={{ fontFamily: FONTS.logo, fontSize: 20, lineHeight: 32, color: p.goldText, textAlign: 'center' }}>آخرتي</T>
                   <T style={{ fontSize: 12, fontWeight: '700', color: p.goldText, textAlign: 'center' }}>{THEME_LABELS[id]}</T>
                   {on ? <Ionicons name="checkmark-circle" size={16} color={p.gold} style={{ position: 'absolute', top: 6, left: 6 }} /> : null}
+                  {PLUS_THEMES.includes(id) ? (
+                    <View style={[st.plusTag, { backgroundColor: p.gold }]}>
+                      <Ionicons name={locked ? 'lock-closed' : 'sparkles'} size={10} color={p.bg} />
+                      <T style={{ fontSize: 10, fontWeight: '800', color: p.bg }}>بلس</T>
+                    </View>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -255,6 +272,8 @@ const st = StyleSheet.create({
   row: { flexDirection: ROW, alignItems: 'center' },
   themeCard: { width: '48%', height: 96, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   swatch: { width: 14, height: 14, borderRadius: 7 },
+  plusCard: { gap: 12, borderRadius: 18, borderWidth: 1, padding: 14 },
+  plusTag: { position: 'absolute', top: 6, right: 6, flexDirection: ROW, alignItems: 'center', gap: 3, paddingHorizontal: 6, height: 18, borderRadius: 9 },
   option: { gap: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12 },
   optionSm: { gap: 8, minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12 },
 });

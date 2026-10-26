@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Card, Chip, Divider, Header, IslamicPattern, ListRow, Screen, T, TabHeader } from '../components/ui';
 import { NAMES } from '../data/names';
@@ -25,6 +25,7 @@ export function MoreScreen() {
         <ListRow icon="library-outline" emerald title="قصص الأنبياء" subtitle="كما وردت في القرآن الكريم" onPress={() => push({ name: 'stories' })} />
         <ListRow icon="star-outline" title="أسماء الله الحسنى" subtitle="تسعة وتسعون اسماً" onPress={() => push({ name: 'names' })} />
         <ListRow icon="heart-outline" emerald title="المفضلة" subtitle="ما حفظته من أذكار وأدعية" onPress={() => push({ name: 'favorites' })} />
+        <ListRow icon="sparkles-outline" emerald title="آخرتي بلس" subtitle="ألوان وقوالب حصرية، وادعم التطبيق" onPress={() => push({ name: 'plus' })} />
         <ListRow icon="settings-outline" title="الإعدادات" subtitle="المظهر، الخط، القارئ، المواقيت والتنبيهات" onPress={() => push({ name: 'settings' })} />
       </ScrollView>
     </Screen>
@@ -39,8 +40,26 @@ const RING = 270;
 const BEADS = 33;
 
 export function TasbihScreen() {
-  const { colors, state, addTasbih } = useStore();
+  const { colors, state, addTasbih, update } = useStore();
+  const { push } = useNav();
   const [sel, setSel] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  // أذكار المستخدم الخاصة (آخرتي بلس)
+  const custom = state.plus ? state.customDhikr : [];
+  const labels = [...LABELS, ...custom];
+  const phrases = [...PHRASES, ...custom];
+  const cur = Math.min(sel, phrases.length - 1);
+
+  function saveCustom() {
+    const t = draft.trim().slice(0, 80);
+    if (!t) return setAdding(false);
+    update((x) => ({ ...x, customDhikr: [...x.customDhikr.filter((d) => d !== t), t].slice(-20) }));
+    setDraft('');
+    setAdding(false);
+    setSel(LABELS.length + custom.filter((d) => d !== t).length);
+    setCount(0);
+  }
   const [target, setTarget] = useState(33);
   const [count, setCount] = useState(0);
   const [rounds, setRounds] = useState(0);
@@ -79,21 +98,46 @@ export function TasbihScreen() {
         }
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 20, flexDirection: ROW }} style={{ flexGrow: 0 }}>
-        {LABELS.map((l, i) => (
-          <Chip
-            key={l}
-            label={l}
-            active={sel === i}
-            onPress={() => {
-              setSel(i);
-              setCount(0);
-              setRounds(0);
+        {labels.map((l, i) => (
+          <Pressable
+            key={`${i}-${l}`}
+            onLongPress={() => {
+              if (i < LABELS.length) return;
+              update((x) => ({ ...x, customDhikr: x.customDhikr.filter((d) => d !== l) }));
+              setSel(0);
             }}
-          />
+          >
+            <Chip
+              label={l}
+              active={cur === i}
+              onPress={() => {
+                setSel(i);
+                setCount(0);
+                setRounds(0);
+              }}
+            />
+          </Pressable>
         ))}
+        <Chip label={state.plus ? '+ ذكر خاص' : '+ ذكر خاص ✦'} active={false} onPress={() => (state.plus ? setAdding(true) : push({ name: 'plus' }))} />
       </ScrollView>
+      {adding ? (
+        <View style={{ flexDirection: ROW, gap: 8, paddingHorizontal: 20, marginTop: 10, alignItems: 'center' }}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            autoFocus
+            placeholder="اكتب الذكر الذي تريده"
+            placeholderTextColor={colors.muted}
+            onSubmitEditing={saveCustom}
+            style={{ flex: 1, height: 46, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, color: colors.text, paddingHorizontal: 12, textAlign: 'right', writingDirection: 'rtl' }}
+          />
+          <Pressable onPress={saveCustom} accessibilityRole="button" style={{ height: 46, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.gold, justifyContent: 'center' }}>
+            <T style={{ color: '#1E130C', fontWeight: '700' }}>حفظ</T>
+          </Pressable>
+        </View>
+      ) : null}
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 32, lineHeight: 56, textAlign: 'center', color: colors.goldText }}>{PHRASES[sel]}</T>
+        <T style={{ fontFamily: FONTS.dhikrBold, fontSize: 32, lineHeight: 56, textAlign: 'center', color: colors.goldText }}>{phrases[cur]}</T>
         <View style={{ width: RING, height: RING, alignItems: 'center', justifyContent: 'center' }}>
           <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
             {Array.from({ length: BEADS }).map((_, i) => {

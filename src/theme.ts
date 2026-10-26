@@ -143,9 +143,107 @@ export const sky: Palette = {
   waves: ['#7DB9DD', '#B7DAEE', '#EEF7FC'],
 };
 
-export const THEMES = { main, royal, black, sky };
+// ───────── ألوان آخرتي بلس ─────────
+// الزمردي الفاخر: أخضر زمردي عميق مع ذهب لامع
+export const emerald: Palette = {
+  dark: true,
+  bg: '#04140F',
+  bg2: '#082219',
+  card: '#0A2A1F',
+  cardAlt: '#0E3527',
+  border: 'rgba(222,190,112,0.28)',
+  borderStrong: 'rgba(236,206,130,0.62)',
+  text: '#F3EBD3',
+  muted: '#A9C2B5',
+  gold: '#DEBE70',
+  goldText: '#EED28A',
+  goldSoft: 'rgba(222,190,112,0.14)',
+  emerald: '#0F5A43',
+  emeraldDeep: '#0A3D2E',
+  onEmerald: '#FFFFFF',
+  onEmeraldMuted: '#CFE6DA',
+  success: '#86E0B0',
+  successSoft: 'rgba(134,224,176,0.13)',
+  danger: '#F2A7A0',
+  dangerSoft: 'rgba(242,167,160,0.13)',
+  paper: '#FBF5E8',
+  paperInk: '#13261E',
+  paperFrame: '#B8893A',
+  pattern: '#DEBE70',
+  waves: ['#0F5A43', '#0A3527', '#04140F'],
+};
+
+// العاجي الذهبي: فاتح دافئ بلون العاج مع ذهب
+export const ivory: Palette = {
+  dark: false,
+  bg: '#F6EFE2',
+  bg2: '#EFE3CC',
+  card: '#FFFBF3',
+  cardAlt: '#F3E8D3',
+  border: 'rgba(160,117,42,0.26)',
+  borderStrong: 'rgba(160,117,42,0.55)',
+  text: '#2A1C10',
+  muted: '#7A6247',
+  gold: '#A0752A',
+  goldText: '#86601F',
+  goldSoft: 'rgba(160,117,42,0.12)',
+  emerald: '#7A5320',
+  emeraldDeep: '#5E3F17',
+  onEmerald: '#FFFFFF',
+  onEmeraldMuted: '#F3E3C6',
+  success: '#2E7A4E',
+  successSoft: '#E2F1E6',
+  danger: '#A8241C',
+  dangerSoft: '#F9DEDC',
+  paper: '#FFFDF7',
+  paperInk: '#2A1C10',
+  paperFrame: '#A0752A',
+  pattern: '#A0752A',
+  waves: ['#D9BE8C', '#EAD9B6', '#F6EFE2'],
+};
+
+// الليلي: كحلي عميق كسماء الليل مع ذهب
+export const night: Palette = {
+  dark: true,
+  bg: '#060B1A',
+  bg2: '#0B1430',
+  card: '#0E1838',
+  cardAlt: '#132045',
+  border: 'rgba(222,190,112,0.26)',
+  borderStrong: 'rgba(236,206,130,0.6)',
+  text: '#EDEBF5',
+  muted: '#A3ABCB',
+  gold: '#DEBE70',
+  goldText: '#EED28A',
+  goldSoft: 'rgba(222,190,112,0.13)',
+  emerald: '#22346E',
+  emeraldDeep: '#172552',
+  onEmerald: '#FFFFFF',
+  onEmeraldMuted: '#C9D2F0',
+  success: '#86E0B0',
+  successSoft: 'rgba(134,224,176,0.12)',
+  danger: '#F2A7A0',
+  dangerSoft: 'rgba(242,167,160,0.12)',
+  paper: '#F8F5EC',
+  paperInk: '#121A33',
+  paperFrame: '#B8893A',
+  pattern: '#DEBE70',
+  waves: ['#22346E', '#111D42', '#060B1A'],
+};
+
+export const THEMES = { main, royal, black, sky, emerald, ivory, night };
 export type ThemeName = keyof typeof THEMES;
-export const THEME_LABELS: Record<ThemeName, string> = { main: 'الرئيسي', royal: 'الملكي', black: 'الأسود', sky: 'السماوي' };
+export const THEME_LABELS: Record<ThemeName, string> = {
+  main: 'الرئيسي',
+  royal: 'الملكي',
+  black: 'الأسود',
+  sky: 'السماوي',
+  emerald: 'الزمردي',
+  ivory: 'العاجي',
+  night: 'الليلي',
+};
+// الألوان الخاصة بمشتركي آخرتي بلس
+export const PLUS_THEMES: ThemeName[] = ['emerald', 'ivory', 'night'];
 
 export const FONTS = {
   logo: 'ArefRuqaa_700Bold',

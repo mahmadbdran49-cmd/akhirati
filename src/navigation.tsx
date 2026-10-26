@@ -22,7 +22,8 @@ export type Route =
   | { name: 'video'; id: string }
   | { name: 'search'; q?: string }
   | { name: 'listen' }
-  | { name: 'admin' };
+  | { name: 'admin' }
+  | { name: 'plus' };
 
 type Nav = {
   route: Route;

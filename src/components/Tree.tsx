@@ -33,7 +33,7 @@ const STARS: [number, number, number][] = Array.from({ length: 22 }, (_, i) => [
 export type TreeHandle = { sway: () => void; rain: () => void };
 
 // رسم الشجرة الكامل: نجوم، عصافير، ورود تتوهّج، ومطر عند السقاية
-export const TreeArt = forwardRef<TreeHandle, { state: TreeState; width: number; night?: boolean }>(function TreeArt({ state, width, night = true }, ref) {
+export const TreeArt = forwardRef<TreeHandle, { state: TreeState; width: number; night?: boolean; golden?: boolean }>(function TreeArt({ state, width, night = true, golden = false }, ref) {
   const { colors, state: app } = useStore();
   const scale = width / 390;
   const height = 560 * scale;
@@ -149,6 +149,16 @@ export const TreeArt = forwardRef<TreeHandle, { state: TreeState; width: number;
               <Stop offset="0.5" stopColor="#F59BBE" />
               <Stop offset="1" stopColor="#E86B9C" stopOpacity="0" />
             </RadialGradient>
+            <RadialGradient id="gw" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#FFFDF2" />
+              <Stop offset="0.5" stopColor="#FFE7A3" />
+              <Stop offset="1" stopColor="#E8B84A" stopOpacity="0" />
+            </RadialGradient>
+            <RadialGradient id="gp" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#FFF6D8" />
+              <Stop offset="0.5" stopColor="#E9C25E" />
+              <Stop offset="1" stopColor="#C8932F" stopOpacity="0" />
+            </RadialGradient>
           </Defs>
           <Path
             d="M182 542 C186 480 176 440 168 400 C160 370 150 350 136 330 M194 542 C196 460 200 410 206 370 C210 340 222 310 240 290 M190 450 C214 430 238 420 262 400 M184 420 C160 400 140 392 116 376 M200 380 C196 340 192 310 196 270"
@@ -168,10 +178,21 @@ export const TreeArt = forwardRef<TreeHandle, { state: TreeState; width: number;
           </G>
           {SPOTS.slice(0, n).map(([x, y], i) => (
             <G key={i}>
-              <Circle cx={x} cy={y - 20} r={h === 1 ? 12 + (i % 3) * 2 : 8} fill={i % 2 ? 'url(#bp)' : 'url(#bw)'} />
+              <Circle cx={x} cy={y - 20} r={h === 1 ? 12 + (i % 3) * 2 : 8} fill={golden ? (i % 2 ? 'url(#gp)' : 'url(#gw)') : i % 2 ? 'url(#bp)' : 'url(#bw)'} />
               <Circle cx={x} cy={y - 20} r={h === 1 ? 2.6 : 1.8} fill="#FFFFFF" />
             </G>
           ))}
+          {golden && !state.fallen
+            ? ([[150, 318], [246, 312], [104, 404], [292, 420], [196, 372]] as [number, number][]).map(([x, y], i) => (
+                <G key={`l${i}`}>
+                  <Path d={`M${x} ${y - 26} V${y - 12}`} stroke="#C8A052" strokeWidth={1.2} />
+                  <Path d={`M${x - 7} ${y - 12} h14 l-2 4 h-10z`} fill="#B8893A" />
+                  <Path d={`M${x - 7} ${y - 8} q7 -4 14 0 v12 q-7 6 -14 0z`} fill="#FFD777" opacity={0.95} />
+                  <Circle cx={x} cy={y} r={12} fill="#FFE7A3" opacity={0.25} />
+                  <Path d={`M${x - 5} ${y + 5} h10 l-2 3 h-6z`} fill="#B8893A" />
+                </G>
+              ))
+            : null}
         </Svg>
         {showBirds ? (
           <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateY: hopY }] }]}>
@@ -211,7 +232,7 @@ export const TreeArt = forwardRef<TreeHandle, { state: TreeState; width: number;
 });
 
 // الشعار الدائري الصغير للشجرة في الرئيسية
-export function TreeBadge({ state, size = 64 }: { state: TreeState; size?: number }) {
+export function TreeBadge({ state, size = 64, golden = false }: { state: TreeState; size?: number; golden?: boolean }) {
   const { colors } = useStore();
   const h = state.health;
   const leaf = h === 1 ? '#2F8A63' : h >= 0.6 ? '#6F8A3A' : '#8A6A3A';
@@ -233,7 +254,7 @@ export function TreeBadge({ state, size = 64 }: { state: TreeState; size?: numbe
           <Circle cx={36} cy={28} r={15 * (0.6 + h * 0.4)} fill={leaf} />
           <Circle cx={24} cy={36} r={11 * (0.6 + h * 0.4)} fill={leaf} />
           <Circle cx={48} cy={35} r={11 * (0.6 + h * 0.4)} fill={leaf} />
-          {blooms.map(([x, y], i) => <Circle key={i} cx={x} cy={y} r={2.8} fill={i % 2 ? '#F7B8D0' : '#FFFFFF'} />)}
+          {blooms.map(([x, y], i) => <Circle key={i} cx={x} cy={y} r={2.8} fill={golden ? (i % 2 ? '#E9C25E' : '#FFF1C2') : i % 2 ? '#F7B8D0' : '#FFFFFF'} />)}
         </G>
       </Svg>
     </View>
