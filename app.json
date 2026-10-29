@@ -9,15 +9,15 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.akhirati.app",
+      "bundleIdentifier": "com.akhirahapp.badran",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لحساب مواقيت الصلاة واتجاه القبلة بدقة."
       }
     },
     "android": {
-      "package": "com.akhirati.app",
-      "versionCode": 5,
+      "package": "com.akhirahapp.badran",
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#5A2E16",
         "foregroundImage": "./assets/android-icon-foreground.png",
